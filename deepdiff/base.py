@@ -18,6 +18,11 @@ class Base:
                 significant_digits = DEFAULT_SIGNIFICANT_DIGITS_WHEN_IGNORE_NUMERIC_TYPES
         return significant_digits
 
+    def get_truncate_datetime(self, truncate_datetime):
+        if truncate_datetime not in (None, 'second', 'minute', 'hour', 'day'):
+            raise ValueError("truncate_datetime must be second, minute, hour or day")
+        return truncate_datetime
+
     def get_ignore_types_in_groups(self, ignore_type_in_groups,
                                    ignore_string_type_changes,
                                    ignore_numeric_type_changes,

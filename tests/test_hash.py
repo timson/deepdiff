@@ -2,6 +2,7 @@
 import re
 import pytest
 import logging
+import datetime
 from deepdiff import DeepHash
 from deepdiff.deephash import prepare_string_for_hashing, unprocessed, BoolObj
 from deepdiff.helper import pypy3, get_id, number_to_string
@@ -91,6 +92,26 @@ class TestDeepHash:
         a_hash = DeepHash(a, ignore_string_type_changes=True, hasher=DeepHash.sha1hex)[a]
         b_hash = DeepHash(b, ignore_string_type_changes=True, hasher=DeepHash.sha1hex)[b]
         assert a_hash == b_hash
+
+    def test_datetime(self):
+        now = datetime.datetime.now()
+        a = b = now
+        a_hash = DeepHash(a)
+        b_hash = DeepHash(b)
+        assert a_hash[a] == b_hash[b]
+
+    def test_datetime_truncate(self):
+        a = datetime.datetime(2020, 5, 17, 22, 15, 34, 913070)
+        b = datetime.datetime(2020, 5, 17, 22, 15, 39, 296583)
+        c = datetime.datetime(2020, 5, 17, 22, 15, 34, 500000)
+
+        a_hash = DeepHash(a, truncate_datetime='minute')
+        b_hash = DeepHash(b, truncate_datetime='minute')
+        assert a_hash[a] == b_hash[b]
+
+        a_hash = DeepHash(a, truncate_datetime='second')
+        c_hash = DeepHash(c, truncate_datetime='second')
+        assert a_hash[a] == c_hash[c]
 
 
 class TestDeepHashPrep:

@@ -15,12 +15,12 @@ from collections.abc import Mapping, Iterable
 
 from ordered_set import OrderedSet
 
-from deepdiff.helper import (strings, bytes_type, numbers, ListItemRemovedOrAdded, notpresent,
+from deepdiff.helper import (strings, bytes_type, numbers, datetimes, ListItemRemovedOrAdded, notpresent,
                              IndexedHash, Verbose, unprocessed, json_convertor_default, add_to_frozen_set,
                              convert_item_or_items_into_set_else_none, get_type,
                              convert_item_or_items_into_compiled_regexes_else_none,
                              type_is_subclass_of_type_group, type_in_type_group, get_doc,
-                             number_to_string, KEY_TO_VAL_STR)
+                             number_to_string, datetime_normalize, KEY_TO_VAL_STR)
 from deepdiff.model import RemapDict, ResultDict, TextResult, TreeResult, DiffLevel
 from deepdiff.model import DictRelationship, AttributeRelationship
 from deepdiff.model import SubscriptableIterableRelationship, NonSubscriptableIterableRelationship, SetRelationship
@@ -64,6 +64,7 @@ class DeepDiff(ResultDict, Base):
                  exclude_obj_callback=None,
                  number_to_string_func=None,
                  ignore_nan_inequality=False,
+                 truncate_datetime=None,
                  verbose_level=1,
                  view=TEXT_VIEW,
                  hasher=None,
@@ -95,6 +96,7 @@ class DeepDiff(ResultDict, Base):
         self.exclude_obj_callback = exclude_obj_callback
         self.number_to_string = number_to_string_func or number_to_string
         self.ignore_nan_inequality = ignore_nan_inequality
+        self.truncate_datetime = self.get_truncate_datetime(truncate_datetime)
         self.hashes = {}
         self.hasher = hasher
 
@@ -476,6 +478,7 @@ class DeepDiff(ResultDict, Base):
                                       hasher=self.hasher,
                                       ignore_repetition=not self.report_repetition,
                                       significant_digits=self.significant_digits,
+                                      truncate_datetime=self.truncate_datetime,
                                       number_format_notation=self.number_format_notation,
                                       ignore_string_type_changes=self.ignore_string_type_changes,
                                       ignore_numeric_type_changes=self.ignore_numeric_type_changes,
@@ -579,6 +582,18 @@ class DeepDiff(ResultDict, Base):
                         0])
                 self.__report_result('iterable_item_removed', change_level)
 
+
+    def __diff_datetimes(self, level):
+        """Diff DateTimes"""
+        levels = []
+        if self.truncate_datetime:
+            level.t1 = datetime_normalize(self.truncate_datetime, level.t1)
+            level.t2 = datetime_normalize(self.truncate_datetime, level.t2)
+
+        if level.t1 != level.t2:
+            self.__report_result('values_changed', level)
+
+
     def __diff_numbers(self, level):
         """Diff Numbers"""
         t1_type = "number" if self.ignore_numeric_type_changes else level.t1.__class__.__name__
@@ -636,6 +651,9 @@ class DeepDiff(ResultDict, Base):
 
         if isinstance(level.t1, strings):
             self.__diff_str(level)
+
+        elif isinstance(level.t1, datetimes):
+            self.__diff_datetimes(level)
 
         elif isinstance(level.t1, numbers):
             self.__diff_numbers(level)

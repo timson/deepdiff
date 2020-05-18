@@ -29,7 +29,8 @@ pypy3 = py3 and hasattr(sys, "pypy_translation_info")
 strings = (str, bytes)  # which are both basestring
 unicode_type = str
 bytes_type = bytes
-numbers = (int, float, complex, datetime.datetime, datetime.date, datetime.timedelta, Decimal)
+numbers = (int, float, complex, datetime.date, datetime.timedelta, Decimal)
+datetimes = (datetime.datetime,)
 
 IndexedHash = namedtuple('IndexedHash', 'indexes item')
 
@@ -244,6 +245,21 @@ def number_to_string(number, significant_digits, number_format_notation="f"):
     if number_format_notation == 'e' and isinstance(number, float):
         result = result.replace('+0', '+')
     return result
+
+
+def datetime_normalize(truncate_datetime, obj):
+    if truncate_datetime:
+        if truncate_datetime == 'second':
+            obj = obj.replace(microsecond=0)
+        elif truncate_datetime == 'minute':
+            obj = obj.replace(second=0, microsecond=0)
+        elif truncate_datetime == 'hour':
+            obj = obj.replace(minute=0, second=0, microsecond=0)
+        elif truncate_datetime == 'day':
+            obj = obj.replace(hour=0, minute=0, second=0, microsecond=0)
+    obj = obj.replace(tzinfo=datetime.timezone.utc).timestamp()
+    return obj
+
 
 
 class DeepDiffDeprecationWarning(DeprecationWarning):

@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 import logging
+import datetime
 from collections.abc import Iterable, MutableMapping
 from collections import defaultdict
 from hashlib import sha1, sha256
 from enum import Enum
-from deepdiff.helper import (strings, numbers, unprocessed, not_hashed, add_to_frozen_set,
+from deepdiff.helper import (strings, numbers, datetimes, unprocessed, not_hashed, add_to_frozen_set,
                              convert_item_or_items_into_set_else_none, get_doc,
                              convert_item_or_items_into_compiled_regexes_else_none,
                              get_id, type_is_subclass_of_type_group, type_in_type_group,
-                             number_to_string, KEY_TO_VAL_STR)
+                             number_to_string, datetime_normalize, KEY_TO_VAL_STR)
 from deepdiff.base import Base
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ class DeepHash(dict, Base):
                  hasher=None,
                  ignore_repetition=True,
                  significant_digits=None,
+                 truncate_datetime=None,
                  number_format_notation="f",
                  apply_hash=True,
                  ignore_type_in_groups=None,
@@ -93,6 +95,7 @@ class DeepHash(dict, Base):
         self[UNPROCESSED] = []
 
         self.significant_digits = self.get_significant_digits(significant_digits, ignore_numeric_type_changes)
+        self.truncate_datetime = self.get_truncate_datetime(truncate_datetime)
         self.number_format_notation = number_format_notation
         self.ignore_type_in_groups = self.get_ignore_types_in_groups(
             ignore_type_in_groups=ignore_type_in_groups,
@@ -272,6 +275,11 @@ class DeepHash(dict, Base):
 
         return result
 
+    def _prep_datetime(self, obj):
+        type_ = 'datetime'
+        obj = datetime_normalize(self.truncate_datetime, obj)
+        return KEY_TO_VAL_STR.format(type_, obj)
+
     def _prep_bool(self, obj):
         return BoolObj.TRUE if obj else BoolObj.FALSE
 
@@ -321,6 +329,9 @@ class DeepHash(dict, Base):
             result = prepare_string_for_hashing(
                 obj, ignore_string_type_changes=self.ignore_string_type_changes,
                 ignore_string_case=self.ignore_string_case)
+
+        elif isinstance(obj, datetimes):
+            result = self._prep_datetime(obj)
 
         elif isinstance(obj, numbers):
             result = self._prep_number(obj)
