@@ -41,7 +41,7 @@ class TestDiffOther:
         assert res == {}
 
         res = DeepDiff(d1, d2, truncate_datetime='second')
-        assert res['values_changed']["root['a']"]['new_value'] == 1589753739.0
+        assert res['values_changed']["root['a']"]['new_value'] == datetime.datetime(2020, 5, 17, 22, 15, 39)
 
         d1 = {'a' : datetime.time(22, 15, 34, 913070)}
         d2 = {'a' : datetime.time(22, 15, 39, 296583)}
@@ -50,7 +50,7 @@ class TestDiffOther:
         assert res == {}
 
         res = DeepDiff(d1, d2, truncate_datetime='second')
-        assert res['values_changed']["root['a']"]['new_value'] == 80139
+        assert res['values_changed']["root['a']"]['new_value'] == datetime.time(22, 15, 39)
         
     def test_invalid_verbose_level(self):
         with pytest.raises(ValueError) as excinfo:
